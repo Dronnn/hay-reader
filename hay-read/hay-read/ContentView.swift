@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Bindable var model: PlayerViewModel
     @State private var showHistory = false
+    @AppStorage("showTranslation") private var showTranslation = true
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -17,8 +18,7 @@ struct ContentView: View {
                     }.frame(width: 210)
                 }
             }
-            Divider()
-            TranslationPanel(model: model)
+            if showTranslation { Divider(); TranslationPanel(model: model, translation: model.translation) }
             Divider()
             HStack(spacing: 16) {
                 Button { model.play() } label: { Image(systemName: "play.fill") }.help("Play (⌘Return)").accessibilityLabel("Play")
@@ -40,6 +40,7 @@ struct ContentView: View {
         .frame(minWidth: 620, minHeight: 360)
         .toolbar {
             Button("Clear", systemImage: "trash") { model.replaceText("") }
+            Button(showTranslation ? "Hide Translation" : "Show Translation", systemImage: "character.bubble") { showTranslation.toggle() }
             Button("History", systemImage: "clock") { showHistory.toggle() }
         }
         .alert("Unable to Speak", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {

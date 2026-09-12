@@ -26,16 +26,29 @@ LIB="$RUNTIME/lib/libtranslation.dylib"
 if [ ! -f "$LIB" ] || [ native/TranslationBridge.cpp -nt "$LIB" ] || [ native/TranslationBridge.h -nt "$LIB" ]; then
   xcrun clang++ -std=c++17 -O2 -arch arm64 -mmacosx-version-min=14.0 -dynamiclib native/TranslationBridge.cpp -I "$RUNTIME/include" -L "$RUNTIME/lib" -lctranslate2 -lsentencepiece -o "$LIB" -Wl,-install_name,@rpath/libtranslation.dylib -Wl,-rpath,@loader_path
 fi
-for PAIR in hy-ru ru-hy; do
-  mkdir -p ".local/translation-models/$PAIR"
-  if [ "$PAIR" = hy-ru ]; then REV=acba5e31fedae66078303fb600f6fb8a5792b8af; else REV=7f2a3f435914324124d8512d98c88cfacacc8437; fi
-  for FILE in config.json model.bin shared_vocabulary.json source.spm target.spm; do
-    DEST=".local/translation-models/$PAIR/$FILE"
-    if [ ! -s "$DEST" ]; then
-      curl -fsSL --retry 3 "https://huggingface.co/manancode/opus-mt-$PAIR-ctranslate2-android/resolve/$REV/$FILE" -o "$DEST.part"
-      mv "$DEST.part" "$DEST"
+MODEL_DIR=.local/translation-models/small100
+mkdir -p "$MODEL_DIR"
+for FILE in config.json model.bin shared_vocabulary.json sentencepiece.bpe.model; do
+  DEST="$MODEL_DIR/$FILE"
+  if [ ! -s "$DEST" ]; then
+    if [ "$FILE" = sentencepiece.bpe.model ]; then
+      URL="https://huggingface.co/alirezamsh/small100/resolve/8ab680e26a596d2e3d2d2d17ae0f68df1037328c/$FILE"
+    else
+      URL="https://huggingface.co/luonluonvn/small100_ct2_quant_int8/resolve/70aa466947398e2d2148522c18781e10b22f05fc/$FILE"
     fi
-  done
+    curl -fsSL --retry 3 "$URL" -o "$DEST.part"
+    mv "$DEST.part" "$DEST"
+  fi
+done
+WINDY_DIR=.local/translation-models/windy-ru-hy
+mkdir -p "$WINDY_DIR"
+for FILE in config.json model.bin shared_vocabulary.json source.spm target.spm; do
+  DEST="$WINDY_DIR/$FILE"
+  if [ ! -s "$DEST" ]; then
+    case "$FILE" in *.spm) SUBDIR=herm0 ;; *) SUBDIR=herm0-ct2-int8 ;; esac
+    curl -fsSL --retry 3 "https://huggingface.co/WindstormLabs/translate-ru-hy/resolve/1f8481e96b2b2754782dbf809234bde1ff5893fa/$SUBDIR/$FILE" -o "$DEST.part"
+    mv "$DEST.part" "$DEST"
+  fi
 done
 shasum -a 256 --check --status native/translation-models.sha256
 mkdir -p "$RUNTIME/licenses"
@@ -57,7 +70,8 @@ if [ -n "${TARGET_BUILD_DIR:-}" ]; then
   RES="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
   FRAMEWORKS="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
   mkdir -p "$RES/TranslationModels" "$RES/Licenses" "$FRAMEWORKS"
-  cp -R .local/translation-models/* "$RES/TranslationModels/"
+  rm -rf "$RES/TranslationModels/hy-ru" "$RES/TranslationModels/ru-hy"
+  cp -R "$MODEL_DIR" "$WINDY_DIR" "$RES/TranslationModels/"
   cp "$RUNTIME/licenses/"* "$RES/Licenses/"
   cp "$LIB" "$FRAMEWORKS/"
   cp "$RUNTIME/lib/libctranslate2.4.6.0.dylib" "$FRAMEWORKS/libctranslate2.4.dylib"

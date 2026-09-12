@@ -14,6 +14,7 @@ final class PlayerViewModel: NSObject, AVAudioPlayerDelegate {
     var error: String?
     let settings = AppSettings()
     let history = HistoryStore()
+    let translation = TranslationViewModel()
     private let tts: any TTSService = PiperTTSService()
     private var audio: AVAudioPlayer?
     private var task: Task<Void, Never>?
@@ -24,8 +25,11 @@ final class PlayerViewModel: NSObject, AVAudioPlayerDelegate {
         return selection.length > 0 && NSMaxRange(selection) <= nsText.length ? nsText.substring(with: selection) : text
     }
     func play() {
-        let input = selectedText
         stop()
+        let currentTranslation = translation.sourceText == text || translation.sourceText == selectedText ? translation.result : ""
+        guard let input = try? SpeechInput.speechText(editor: SpeechInput.armenianText(in: selectedText) ?? text, translation: currentTranslation) else {
+            error = SpeechError.noArmenian.localizedDescription; return
+        }
         guard (try? SpeechInput.validate(input)) != nil else { error = SpeechError.emptyText.localizedDescription; return }
         let id = UUID(); generation = id
         generating = true; status = "Generating…"

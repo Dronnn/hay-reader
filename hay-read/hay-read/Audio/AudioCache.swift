@@ -4,7 +4,7 @@ import CryptoKit
 struct AudioCache {
     let directory: URL
     static func key(text: String, voice: String, speed: Double) -> String {
-        let payload = "\(voice.utf8.count):\(voice)|\(SpeechInput.lengthScale(speed: speed))|\(text)"
+        let payload = "v2|\(voice.utf8.count):\(voice)|\(SpeechInput.lengthScale(speed: speed))|\(text)"
         return SHA256.hash(data: Data(payload.utf8)).map { String(format: "%02x", $0) }.joined()
     }
     func file(key: String) -> URL { directory.appendingPathComponent(key).appendingPathExtension("wav") }

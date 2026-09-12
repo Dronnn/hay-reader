@@ -4,6 +4,7 @@ import Observation
 enum TranslationDirection: String, CaseIterable, Identifiable, Sendable {
     case armenianToRussian = "hy-ru", russianToArmenian = "ru-hy"
     var id: String { rawValue }
+    var targetLanguage: String { self == .armenianToRussian ? "ru" : "hy" }
     var label: String {
         switch self {
         case .armenianToRussian: "Armenian to Russian"
@@ -24,20 +25,21 @@ enum TranslationError: LocalizedError {
 }
 
 actor TranslationService {
-    private var engines: [TranslationDirection: UnsafeMutableRawPointer] = [:]
+    private var engines: [String: UnsafeMutableRawPointer] = [:]
     deinit { for engine in engines.values { translation_destroy(engine) } }
     func translate(_ text: String, direction: TranslationDirection) async throws -> String {
         _ = try SpeechInput.validate(text)
         try Task.checkCancellation()
-        if engines[direction] == nil {
+        let folder = direction == .russianToArmenian ? "windy-ru-hy" : "small100"
+        if engines[folder] == nil {
             guard let resources = Bundle.main.resourceURL,
-                  let engine = translation_create(resources.appendingPathComponent("TranslationModels/" + direction.rawValue).path) else {
+                  let loaded = translation_create(resources.appendingPathComponent("TranslationModels/" + folder).path) else {
                 throw TranslationError.unavailable
             }
-            engines[direction] = engine
+            engines[folder] = loaded
         }
         var code: Int32 = 0
-        guard let result = translation_run(engines[direction], text, &code) else {
+        guard let result = translation_run(engines[folder], text, direction.targetLanguage, &code) else {
             throw code == 1 ? TranslationError.tooLong : TranslationError.failed
         }
         defer { translation_free_text(result) }
@@ -50,6 +52,7 @@ actor TranslationService {
 final class TranslationViewModel {
     var direction = TranslationDirection.armenianToRussian
     private(set) var result = ""
+    private(set) var sourceText = ""
     private(set) var busy = false
     private(set) var error: String?
     private let service = TranslationService()
@@ -57,7 +60,7 @@ final class TranslationViewModel {
     private var requestID = UUID()
     func reset() {
         requestID = UUID(); task?.cancel(); task = nil
-        result = ""; error = nil; busy = false
+        result = ""; sourceText = ""; error = nil; busy = false
     }
     func translate(_ text: String, delay: Bool = false) {
         reset()
@@ -73,7 +76,7 @@ final class TranslationViewModel {
                 busy = true
                 let output = try await service.translate(text, direction: direction)
                 guard requestID == id else { return }
-                result = output; busy = false
+                sourceText = text; result = output; busy = false
             } catch is CancellationError {
             } catch {
                 guard requestID == id else { return }

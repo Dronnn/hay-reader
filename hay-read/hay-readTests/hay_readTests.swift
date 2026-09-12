@@ -12,6 +12,13 @@ struct SpeechTests {
         #expect(SpeechInput.lengthScale(speed: 1) == 1)
         #expect(SpeechInput.lengthScale(speed: .nan) == 1)
     }
+    @Test func speaksOnlyArmenianFromEitherPanel() throws {
+        #expect(try SpeechInput.speechText(editor: "բարև", translation: "Привет") == "բարև")
+        #expect(try SpeechInput.speechText(editor: "привет", translation: "Բարեւ") == "Բարեւ")
+        #expect(throws: SpeechError.self) { try SpeechInput.speechText(editor: "привет", translation: "hello") }
+        let mixed = try SpeechInput.speechText(editor: "привет բարև hello", translation: "")
+        #expect(mixed == "բարև")
+    }
     @Test func cacheKeys() {
         let key = AudioCache.key(text: "բարև", voice: "gor", speed: 1)
         #expect(key == AudioCache.key(text: "բարև", voice: "gor", speed: 1))
@@ -69,8 +76,10 @@ struct SpeechTests {
         let service = TranslationService()
         let russian = try await service.translate("Ես սիրում եմ քեզ։", direction: .armenianToRussian)
         #expect(russian.lowercased().contains("люблю"))
-        let armenian = try await service.translate("Привет.", direction: .russianToArmenian)
+        let armenian = try await service.translate("привет", direction: .russianToArmenian)
         #expect(armenian.unicodeScalars.contains { (0x0530...0x058F).contains($0.value) })
+        let study = try await service.translate("Я изучаю армянский язык.", direction: .russianToArmenian)
+        #expect(study.contains("հայերեն"))
         let repeated = try await service.translate("Ես սիրում եմ քեզ։", direction: .armenianToRussian)
         #expect(repeated == russian)
     }
@@ -79,7 +88,7 @@ struct SpeechTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let service = PiperTTSService(cacheDirectory: directory)
         var durations: [Double] = []
-        for speed in [1.0, 0.7, 0.5] {
+        for speed in [1.0, 0.7, 0.5, 0.1, 2.0] {
             let result = try await service.synthesize(text: "արի գնանք", speed: speed, cacheMegabytes: 100)
             let file = try AVAudioFile(forReading: result.url)
             let duration = Double(file.length) / file.processingFormat.sampleRate
@@ -91,6 +100,8 @@ struct SpeechTests {
         }
         #expect(durations[1] > durations[0])
         #expect(durations[2] > durations[1])
+        #expect(durations[3] > durations[2])
+        #expect(durations[4] < durations[0])
         for phrase in ["մի", "բարև", "Ես սովորում եմ հայերեն։ Այս գիրքը շատ լավ է, և ես ուզում եմ այն կարդալ ամեն օր։"] {
             let result = try await service.synthesize(text: phrase, speed: 1, cacheMegabytes: 100)
             #expect(try AVAudioFile(forReading: result.url).length > 0)

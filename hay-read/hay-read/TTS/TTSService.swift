@@ -10,10 +10,11 @@ protocol TTSService: Sendable {
 }
 
 enum SpeechError: LocalizedError {
-    case emptyText, missingModel, synthesis, playback
+    case emptyText, noArmenian, missingModel, synthesis, playback
     var errorDescription: String? {
         switch self {
         case .emptyText: "Enter some text to speak."
+        case .noArmenian: "There is no Armenian text to speak. Enter Armenian or translate Russian into Armenian first."
         case .missingModel: "The Armenian voice is missing or damaged. Rebuild the app to install it."
         case .synthesis: "Piper could not generate speech for this text."
         case .playback: "Audio playback failed. Check your audio output and try again."
@@ -24,6 +25,21 @@ enum SpeechError: LocalizedError {
 enum SpeechInput {
     static func validate(_ text: String) throws -> String {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw SpeechError.emptyText }
+        return text
+    }
+    static func armenianText(in text: String) -> String? {
+        func isArmenian(_ scalar: Unicode.Scalar) -> Bool {
+            (0x0531...0x0556).contains(scalar.value) || (0x0560...0x0588).contains(scalar.value) || (0xFB13...0xFB17).contains(scalar.value)
+        }
+        guard text.unicodeScalars.contains(where: isArmenian) else { return nil }
+        let filtered = text.unicodeScalars.map { scalar -> String in
+            if CharacterSet.letters.contains(scalar) && !isArmenian(scalar) { return " " }
+            return String(scalar)
+        }.joined()
+        return filtered.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    static func speechText(editor: String, translation: String) throws -> String {
+        guard let text = armenianText(in: editor) ?? armenianText(in: translation) else { throw SpeechError.noArmenian }
         return text
     }
     static func lengthScale(speed: Double) -> Float {

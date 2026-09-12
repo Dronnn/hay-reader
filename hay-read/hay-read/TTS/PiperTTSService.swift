@@ -32,6 +32,7 @@ actor PiperTTSService: TTSService {
         guard let synth else { logger.error("Piper initialization failed"); throw SpeechError.synthesis }
         var options = piper_default_synthesize_options(synth)
         options.length_scale = SpeechInput.lengthScale(speed: speed)
+        options.noise_w_scale = 0
         guard speaker_start(synth, text, &options) == PIPER_OK else { logger.error("Piper start failed"); throw SpeechError.synthesis }
         let temporary = cache.directory.appendingPathComponent(UUID().uuidString + ".partial.wav")
         defer { try? FileManager.default.removeItem(at: temporary) }

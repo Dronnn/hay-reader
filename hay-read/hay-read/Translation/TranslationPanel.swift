@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TranslationPanel: View {
     @Bindable var model: PlayerViewModel
-    @State private var translation = TranslationViewModel()
+    @Bindable var translation: TranslationViewModel
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -24,12 +24,13 @@ struct TranslationPanel: View {
                 }
             }
             if let error = translation.error { Text(error).foregroundStyle(.red).font(.callout) }
-            if !translation.result.isEmpty {
-                ScrollView { Text(translation.result).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-                    .frame(maxHeight: 130)
-            }
+            ScrollView {
+                Text(translation.result.isEmpty ? "Translation will appear here." : translation.result)
+                    .foregroundStyle(translation.result.isEmpty ? .secondary : .primary)
+                    .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(height: 90)
             Text("Local machine translation · May contain mistakes").font(.caption).foregroundStyle(.secondary)
-        }.padding(14)
+        }.padding(14).frame(height: 185, alignment: .top)
         .onChange(of: model.text) { _, text in translation.translate(text, delay: true) }
         .onChange(of: translation.direction) { _, _ in translation.translate(model.text) }
         .onAppear { translation.translate(model.text, delay: true) }
