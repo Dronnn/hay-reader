@@ -1,0 +1,29 @@
+Armenian Speaker
+Source: https://github.com/Dronnn/hay-reader
+Application source: GNU GPL version 3.
+
+Piper: Open Home Foundation, GPL-3.0.
+https://github.com/OHF-Voice/piper1-gpl
+Source revision 404aefedbd74baa0bd43e451bc407a2b3aace0f5.
+espeak-ng: GPL-3.0, https://github.com/espeak-ng/espeak-ng
+Source revision 212928b394a96e8fd2096616bfd54e17845c48f6.
+ONNX Runtime 1.22.0: Microsoft, MIT, https://github.com/microsoft/onnxruntime
+
+Gor Armenian voice: davit312, distributed separately from engine code as model data.
+Model publisher license: GPL-2.0.
+https://huggingface.co/davit312/piper-TTS-Armenian
+https://huggingface.co/rhasspy/piper-voices/tree/main/hy/hy_AM/gor/medium
+The publisher's model card is included with the model.
+
+Translation models: Helsinki-NLP OPUS-MT, Apache-2.0.
+https://huggingface.co/Helsinki-NLP/opus-mt-hy-ru
+https://huggingface.co/Helsinki-NLP/opus-mt-ru-hy
+INT8 conversion by manancode:
+https://huggingface.co/manancode/opus-mt-hy-ru-ctranslate2-android
+https://huggingface.co/manancode/opus-mt-ru-hy-ctranslate2-android
+Model revisions and SHA-256 digests are recorded in the build scripts.
+
+CTranslate2 4.6.0: OpenNMT, MIT, https://github.com/OpenNMT/CTranslate2
+SentencePiece 0.2.1: Google, Apache-2.0, https://github.com/google/sentencepiece
+All included software and models are provided without warranty. Machine speech
+and translation can contain errors. See the accompanying license texts.
